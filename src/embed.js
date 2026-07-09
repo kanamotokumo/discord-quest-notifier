@@ -15,7 +15,7 @@ export async function buildNewQuestEmbed(content, quest, assets) {
     const questLink = `https://canary.discord.com/quests/${questId}`;
 
     // Ping role hoặc fallback text
-    let baseContent = content || `Nhiệm vụ mới: [${config.messages?.quest_name || i18n.error.new_quest}](${questLink})`;
+    let baseContent = content || `Nhiệm vụ mới: ${config.messages?.quest_name || i18n.error.new_quest}`;
     if (PING_ROLE_ID) {
         baseContent = `<@&${PING_ROLE_ID}> Nhiệm Vụ mới đã đến !!! [Click vào đây để làm nhiệm vụ](${questLink})`;
     }
@@ -37,8 +37,11 @@ export async function buildNewQuestEmbed(content, quest, assets) {
     const applicationId = config.application?.id || '';
     const featureName = config.feature || '???';
 
-    // Hero image hiển thị như hình 2
+    // Hero image
     const heroUrl = config.assets?.hero ? `https://cdn.discordapp.com/${config.assets.hero}` : assets.discordQuests;
+
+    // Reward image (nếu có)
+    const rewardImageUrl = primaryReward?.asset ? `https://cdn.discordapp.com/${primaryReward.asset}` : null;
 
     // Tasks
     const taskList = Object.values(config.task_config_v2?.tasks || {})
@@ -53,8 +56,7 @@ export async function buildNewQuestEmbed(content, quest, assets) {
         .join('\n');
 
     const embed = {
-        title: `# Nhiệm vụ mới - [${questName}](${questLink})`,
-        image: { url: heroUrl }, // fix icon sang ảnh hero
+        title: `# Nhiệm Vụ Mới !!! - ${questName}`, // chỉ tên quest, không warp link
         description: 
 `-# *Nếu như không thấy nhiệm vụ trong app Discord, trước hết phải khởi động lại ứng dụng. Nếu vẫn không thấy thì fake IP sang US, UK, v.v. Chúng tôi sẽ gửi thông báo về yêu cầu về IP vào mỗi buổi trưa (nếu có).*
 
@@ -73,10 +75,24 @@ ${taskList || '* ???'}
 **ID SKU**: \`${skuId}\`
 **Phần thưởng**: ${rewardName}${rewards.extraReward}
 ${rewards.expires}
-**Phần thưởng Nitro**: ${primaryReward.premium_orb_quantity} : ''}
+${primaryReward?.premium_orb_quantity ? `**Phần thưởng Nitro**: ${primaryReward.premium_orb_quantity}` : ''}
 
--# **ID Nhiệm vụ**: ${questId}`
+-# **ID Nhiệm vụ**: ${questId}`,
+        image: { url: heroUrl }, // hero image ở trên
+        footer: { text: `${i18n.quest_id}: ${questId}` }
     };
+
+    // Nếu có ảnh phần thưởng thì thêm ở dưới
+    if (rewardImageUrl) {
+        embed.fields = [
+            {
+                name: 'Ảnh phần thưởng',
+                value: '\u200b',
+                inline: false
+            }
+        ];
+        embed.image = { url: rewardImageUrl };
+    }
 
     return {
         username: i18n.name,
@@ -98,7 +114,7 @@ export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets
     const questLink = `https://canary.discord.com/quests/${questId}`;
 
     // Ping role hoặc fallback text
-    let baseContent = content || `Nhiệm vụ đã cập nhật: [${questName}](${questLink})`;
+    let baseContent = content || `Nhiệm vụ đã cập nhật: ${questName}`;
     if (PING_ROLE_ID) {
         baseContent = `<@&${PING_ROLE_ID}> Nhiệm Vụ đã cập nhật !!! [Click vào đây để xem chi tiết](${questLink})`;
     }
@@ -109,15 +125,15 @@ export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets
     const changeDescription = buildChangeDescription(oldQuest, newQuest, changes);
 
     const embed = {
-        title: `### Nhiệm vụ được cập nhật - [${questName}](${questLink})`,
-        image: { url: heroUrl }, // fix icon sang ảnh hero
+        title: `# Nhiệm Vụ Đã Được Cập Nhật - ${questName}`, // chỉ tên quest
         description: 
 `-# *Nếu như không thấy nhiệm vụ trong app Discord, trước hết phải khởi động lại ứng dụng. Nếu vẫn không thấy thì fake IP sang US, UK, v.v. Chúng tôi sẽ gửi thông báo về yêu cầu về IP vào mỗi buổi trưa (nếu có).*
 
 ## Thay đổi
 ${changeDescription || 'Không có thay đổi'}
 
--# **ID Nhiệm vụ**: \`${questId}\``
+-# **ID Nhiệm vụ**: \`${questId}\``,
+        image: { url: heroUrl }
     };
 
     return {
