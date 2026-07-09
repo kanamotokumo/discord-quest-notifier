@@ -12,7 +12,7 @@ export const MAIN_WEBHOOK = process.env.MAIN_WEBHOOK || '';
 export const ERROR_WEBHOOK = process.env.ERROR_WEBHOOK || '';
 export const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 export const REPOSITORY = process.env.REPOSITORY || '';
-export const PING_ROLE = process.env.PING_ROLE_ID || '';
+export const PING_ROLE_ID = process.env.PING_ROLE_ID || '';
 export const LOCALE = process.env.LOCALE || 'en-US';
 
 export const STATE_FILE = path.join(__dirname, '..', 'state.json');
