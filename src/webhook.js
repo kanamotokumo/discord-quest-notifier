@@ -33,13 +33,13 @@ export async function sendWebhook(webhookUrl, embed, wait = true) {
 }
 
 export async function sendErrorNotice(message) {
-    const { ERR_WEBHOOK } = await import('./config.js');
-    if (!ERR_WEBHOOK) return;
+    const { ERROR_WEBHOOK } = await import('./config.js');
+    if (!ERROR_WEBHOOK) return;
 
     const embed = {
-        username: '⚠️ Discord Quests Notifier - Error',
+        username: 'Uh Oh :(((',
         content: `\`\`\`\n${message}\n\`\`\``,
     };
 
-    await sendWebhook(ERR_WEBHOOK, embed, false);
+    await sendWebhook(ERROR_WEBHOOK, embed, false);
 } 
