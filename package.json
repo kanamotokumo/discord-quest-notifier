@@ -1,4 +1,4 @@
- {
+{
   "name": "discord-quests-notifier",
   "version": "2.0.0",
   "description": "Advanced Discord Quests tracker with update detection and atomic state management",
@@ -17,5 +17,7 @@
   ],
   "author": "Korchi Community",
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "dotenv": "^16.1.4"
+  }
 }
