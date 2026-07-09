@@ -53,7 +53,7 @@ export async function buildNewQuestEmbed(content, quest, assets) {
         .join('\n');
 
     const embed = {
-        title: `### Nhiệm vụ mới - [${questName}](${questLink})`,
+        title: `# Nhiệm vụ mới - [${questName}](${questLink})`,
         image: { url: heroUrl }, // fix icon sang ảnh hero
         description: 
 `-# *Nếu như không thấy nhiệm vụ trong app Discord, trước hết phải khởi động lại ứng dụng. Nếu vẫn không thấy thì fake IP sang US, UK, v.v. Chúng tôi sẽ gửi thông báo về yêu cầu về IP vào mỗi buổi trưa (nếu có).*
@@ -61,10 +61,8 @@ export async function buildNewQuestEmbed(content, quest, assets) {
 ## Thông tin nhiệm vụ
 **Thời hạn**: ${durationStr}
 **Hạn chót nhận thưởng**: ${rewardDeadline}
-**Nền tảng nhận**: ${config.platform || '???'}
 **Game**: ${gameTitle} (${gamePublisher})
 **Application**: [${applicationName}](${applicationLink}) (\`${applicationId}\`)
-**Tính năng**: ${featureName}
 
 ## Yêu cầu
 Người dùng phải hoàn thành một trong các yêu cầu sau:
@@ -75,7 +73,7 @@ ${taskList || '* ???'}
 **ID SKU**: \`${skuId}\`
 **Phần thưởng**: ${rewardName}${rewards.extraReward}
 ${rewards.expires}
-${primaryReward?.premium_orb_quantity ? `**Phần thưởng Nitro**: ${primaryReward.premium_orb_quantity}` : ''}
+**Phần thưởng Nitro**: ${primaryReward.premium_orb_quantity} : ''}
 
 -# **ID Nhiệm vụ**: ${questId}`
     };
