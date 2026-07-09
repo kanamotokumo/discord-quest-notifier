@@ -1,7 +1,6 @@
 node_modules/
 .env
 .env.local
-state.json
 state.tmp.json
 *.log
 .DS_Store
