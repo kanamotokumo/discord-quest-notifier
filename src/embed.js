@@ -1,11 +1,13 @@
 // ─── Embed Builder ────────────────────────────────────────────────────────
 import { i18n } from './language.js';
-import { formatDate, formatDateTime, getReward, buildChangeDescription } from './utils.js';
+import { formatDate, getReward, buildChangeDescription } from './utils.js';
+
+const PING_ROLE_ID = process.env.PING_ROLE_ID;
 
 /**
  * Build embed for NEW quest
  */
-export async function buildNewQuestEmbed(content, quest, assets, pingRoleId) {
+export async function buildNewQuestEmbed(content, quest, assets) {
     const config = quest.config;
     if (!config) return null;
 
@@ -15,10 +17,17 @@ export async function buildNewQuestEmbed(content, quest, assets, pingRoleId) {
     const questId = quest.id || '';
     const questLink = `https://canary.discord.com/quests/${questId}`;
 
-    // Ping role nếu có
-    let pingMessage = null;
-    if (pingRoleId) {
-        pingMessage = `<@&${PING_ROLE_ID}> Nhiệm Vụ mới đã đến !!! [Click vào đây để làm nhiệm vụ](${questLink})`;
+    // Ping role hoặc fallback text
+    if (PING_ROLE_ID) {
+        subComponents.push({
+            type: 10,
+            content: `<@&${PING_ROLE_ID}> Nhiệm Vụ mới đã đến !!! [Click vào đây để làm nhiệm vụ](${questLink})`
+        });
+    } else {
+        subComponents.push({
+            type: 10,
+            content: `Nhiệm vụ mới: [${config.messages?.quest_name || i18n.error.new_quest}](${questLink})`
+        });
     }
 
     if (content) subComponents.push({ type: 10, content });
@@ -88,9 +97,7 @@ export async function buildNewQuestEmbed(content, quest, assets, pingRoleId) {
             }]
         },
         {
-            type: 14,
-            divider: true,
-            spacing: 1
+            type: 14, divider: true, spacing: 1
         },
         {
             type: 10,
@@ -101,9 +108,7 @@ export async function buildNewQuestEmbed(content, quest, assets, pingRoleId) {
             content: `**${i18n.duration}:** ${durationStr}\n**${i18n.game}:** ${gameTitle} (${gamePublisher})\n**${i18n.application}:** [${applicationName}](${applicationLink}) (\`${applicationId}\`)`
         },
         {
-            type: 14,
-            divider: true,
-            spacing: 1
+            type: 14, divider: true, spacing: 1
         },
         {
             type: 10,
@@ -114,9 +119,7 @@ export async function buildNewQuestEmbed(content, quest, assets, pingRoleId) {
             content: `${i18n.task_condition[task_condition]}\n${taskList}`
         },
         {
-            type: 14,
-            divider: true,
-            spacing: 1
+            type: 14, divider: true, spacing: 1
         },
         {
             type: 9,
@@ -139,11 +142,7 @@ export async function buildNewQuestEmbed(content, quest, assets, pingRoleId) {
 
     if (videoUrl) {
         subComponents.push(
-            {
-                type: 14,
-                divider: true,
-                spacing: 1
-            },
+            { type: 14, divider: true, spacing: 1 },
             {
                 type: 12,
                 items: [{
@@ -155,35 +154,24 @@ export async function buildNewQuestEmbed(content, quest, assets, pingRoleId) {
     }
 
     subComponents.push(
-        {
-            type: 14,
-            divider: true,
-            spacing: 1
-        },
-        {
-            type: 10,
-            content: `${i18n.quest_id}: \`${questId}\``
-        }
+        { type: 14, divider: true, spacing: 1 },
+        { type: 10, content: `${i18n.quest_id}: \`${questId}\`` }
     );
 
-    embed.push({
-        type: 17,
-        components: subComponents
-    });
+    embed.push({ type: 17, components: subComponents });
 
     return {
         flags: 1 << 15,
         username: i18n.name,
         components: embed,
-        avatar_url: assets.avatarWebhook,
-        content: pingMessage || content || `Nhiệm vụ mới: [${questName}](${questLink})`
+        avatar_url: assets.avatarWebhook
     };
 }
 
 /**
  * Build embed for UPDATED quest
  */
-export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets, changes, pingRoleId) {
+export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets, changes) {
     const config = newQuest.config;
     if (!config) return null;
 
@@ -194,10 +182,17 @@ export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets
     const questId = newQuest.id || '';
     const questLink = `https://canary.discord.com/quests/${questId}`;
 
-    // Ping role nếu có
-    let pingMessage = null;
-    if (pingRoleId) {
-        pingMessage = `<@&${PING_ROLE_ID}> Nhiệm Vụ đã cập nhật !!! [Click vào đây để xem chi tiết](${questLink})`;
+    // Ping role hoặc fallback text
+    if (PING_ROLE_ID) {
+        subComponents.push({
+            type: 10,
+            content: `<@&${PING_ROLE_ID}> Nhiệm Vụ đã cập nhật !!! [Click vào đây để xem chi tiết](${questLink})`
+        });
+    } else {
+        subComponents.push({
+            type: 10,
+            content: `Nhiệm vụ đã cập nhật: [${questName}](${questLink})`
+        });
     }
 
     if (content) subComponents.push({ type: 10, content });
@@ -219,40 +214,19 @@ export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets
                 description: questName
             }]
         },
-        {
-            type: 14,
-            divider: true,
-            spacing: 1
-        },
-        {
-            type: 10,
-            content: `## ${i18n.changes_detected}`
-        },
-        {
-            type: 10,
-            content: changeDescription
-        },
-        {
-            type: 14,
-            divider: true,
-            spacing: 1
-        },
-        {
-            type: 10,
-            content: `${i18n.quest_id}: \`${questId}\``
-        }
+        { type: 14, divider: true, spacing: 1 },
+        { type: 10, content: `## ${i18n.changes_detected}` },
+        { type: 10, content: changeDescription },
+        { type: 14, divider: true, spacing: 1 },
+        { type: 10, content: `${i18n.quest_id}: \`${questId}\`` }
     );
 
-    embed.push({
-        type: 17,
-        components: subComponents
-    });
+    embed.push({ type: 17, components: subComponents });
 
     return {
         flags: 1 << 15,
         username: i18n.name,
         components: embed,
-        avatar_url: assets.avatarWebhook,
-        content: pingMessage || content || `Nhiệm vụ đã cập nhật: [${questName}](${questLink})`
+        avatar_url: assets.avatarWebhook
     };
 }
