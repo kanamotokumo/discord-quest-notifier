@@ -11,58 +11,21 @@ export async function buildNewQuestEmbed(content, quest, assets) {
     const config = quest.config;
     if (!config) return null;
 
-    const embed = [];
-    const subComponents = [];
-
     const questId = quest.id || '';
     const questLink = `https://canary.discord.com/quests/${questId}`;
 
     // Ping role hoặc fallback text
+    let baseContent = content || `Nhiệm vụ mới: [${config.messages?.quest_name || i18n.error.new_quest}](${questLink})`;
     if (PING_ROLE_ID) {
-        subComponents.push({
-            type: 10,
-            content: `<@&${PING_ROLE_ID}> Nhiệm Vụ mới đã đến !!! [Click vào đây để làm nhiệm vụ](${questLink})`
-        });
-    } else {
-        subComponents.push({
-            type: 10,
-            content: `Nhiệm vụ mới: [${config.messages?.quest_name || i18n.error.new_quest}](${questLink})`
-        });
+        baseContent = `<@&${PING_ROLE_ID}> Nhiệm Vụ mới đã đến !!! [Click vào đây để làm nhiệm vụ](${questLink})`;
     }
 
-    if (content) subComponents.push({ type: 10, content });
-
     const durationStr = `${formatDate(config.starts_at)} - ${formatDate(config.expires_at)}`;
-    let videoUrl;
-
-    const taskList = Object.values(config.task_config_v2?.tasks || {})
-        .map(task => {
-            const minutes = task.target ? task.target / 60 : 0;
-            const taskName = task.type
-                .toLowerCase()
-                .replace(/_/g, ' ')
-                .replace(/^\w/, c => c.toUpperCase());
-
-            try {
-                for (const type of ['video', 'video_low_res', 'video_hls']) {
-                    videoUrl = task.assets[type].url;
-                    if (videoUrl) break;
-                }
-            } catch { }
-
-            return `* ${taskName} (${minutes} minutes)`;
-        })
-        .join('\n');
-
-    const task_condition = config.task_config_v2?.join_operator || "or";
 
     const primaryReward = config.rewards_config?.rewards?.[0];
     const rewardName = primaryReward?.messages?.name || i18n.error.reward;
     const skuId = primaryReward?.sku_id || '';
     const rewards = getReward(primaryReward, rewardName);
-    const rewardType = rewards?.rewardType;
-    const extraReward = rewards?.extraReward;
-    const decorExpires = rewards?.expires;
 
     const questName = config.messages?.quest_name || i18n.error.new_quest;
     const gameTitle = config.messages?.game_title || i18n.error.game_name;
@@ -72,99 +35,21 @@ export async function buildNewQuestEmbed(content, quest, assets) {
     const applicationName = config.application?.name || '';
     const applicationId = config.application?.id || '';
 
-    const CDN_BASE = 'https://cdn.discordapp.com/';
-    const heroUrl = config.assets?.hero ? `${CDN_BASE}${config.assets.hero}` : assets.discordQuests;
+    const heroUrl = config.assets?.hero ? `https://cdn.discordapp.com/${config.assets.hero}` : assets.discordQuests;
 
-    let currentRewardIconUrl = assets.rewardIconUrl;
-    if (!rewardName.toLowerCase().includes('orb')) {
-        currentRewardIconUrl = primaryReward?.asset ? (CDN_BASE + primaryReward.asset) : assets.emptyIconUrl;
-    }
-
-    const currentRewardIcon = new URL(currentRewardIconUrl);
-    currentRewardIcon.searchParams.append('format', 'webp');
-
-    // Embed chính
-    subComponents.push(
-        {
-            type: 10,
-            content: `# ${i18n.new_quest} - [${questName}](${questLink})`
-        },
-        {
-            type: 12,
-            items: [{
-                media: { url: heroUrl },
-                description: questName
-            }]
-        },
-        {
-            type: 14, divider: true, spacing: 1
-        },
-        {
-            type: 10,
-            content: `## ${i18n.quest_info}`
-        },
-        {
-            type: 10,
-            content: `**${i18n.duration}:** ${durationStr}\n**${i18n.game}:** ${gameTitle} (${gamePublisher})\n**${i18n.application}:** [${applicationName}](${applicationLink}) (\`${applicationId}\`)`
-        },
-        {
-            type: 14, divider: true, spacing: 1
-        },
-        {
-            type: 10,
-            content: `## ${i18n.tasks}`
-        },
-        {
-            type: 10,
-            content: `${i18n.task_condition[task_condition]}\n${taskList}`
-        },
-        {
-            type: 14, divider: true, spacing: 1
-        },
-        {
-            type: 9,
-            components: [
-                {
-                    type: 10,
-                    content: `## ${i18n.rewards_title}`
-                },
-                {
-                    type: 10,
-                    content: `**${i18n.reward_type}:** ${rewardType}${decorExpires}\n**${i18n.sku_id}:** \`${skuId}\`\n**${i18n.reward_name.normal}:** ${rewardName}${extraReward}\n**${i18n.reward_expires}:** ${formatDate(config.rewards_config?.rewards_expire_at)}`
-                }
-            ],
-            accessory: {
-                type: 11,
-                media: { url: currentRewardIcon.href }
-            }
-        }
-    );
-
-    if (videoUrl) {
-        subComponents.push(
-            { type: 14, divider: true, spacing: 1 },
-            {
-                type: 12,
-                items: [{
-                    media: { url: videoUrl },
-                    description: applicationName
-                }]
-            }
-        );
-    }
-
-    subComponents.push(
-        { type: 14, divider: true, spacing: 1 },
-        { type: 10, content: `${i18n.quest_id}: \`${questId}\`` }
-    );
-
-    embed.push({ type: 17, components: subComponents });
+    const embed = {
+        title: `${i18n.new_quest} - ${questName}`,
+        url: questLink,
+        description: `**${i18n.duration}:** ${durationStr}\n**${i18n.game}:** ${gameTitle} (${gamePublisher})\n**${i18n.application}:** [${applicationName}](${applicationLink}) (\`${applicationId}\`)\n\n**${i18n.reward_type}:** ${rewards.rewardType}\n**${i18n.sku_id}:** \`${skuId}\`\n**${i18n.reward_name.normal}:** ${rewardName}${rewards.extraReward}\n${rewards.expires}\n\n---\n# *Nếu như không thấy nhiệm vụ trong app Discord, trước hết phải khởi động lại ứng dụng. Nếu vẫn không thấy thì fake IP sang US, UK, v.v. Chúng tôi sẽ gửi thông báo về yêu cầu về IP vào mỗi buổi trưa (nếu có).*`,
+        thumbnail: { url: heroUrl },
+        footer: { text: `${i18n.quest_id}: ${questId}` }
+    };
 
     return {
-        flags: 1 << 15,
         username: i18n.name,
-        components: embed,
-        avatar_url: assets.avatarWebhook
+        avatar_url: assets.avatarWebhook,
+        content: baseContent,
+        embeds: [embed]
     };
 }
 
@@ -175,58 +60,31 @@ export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets
     const config = newQuest.config;
     if (!config) return null;
 
-    const embed = [];
-    const subComponents = [];
-
     const questName = config.messages?.quest_name || i18n.error.new_quest;
     const questId = newQuest.id || '';
     const questLink = `https://canary.discord.com/quests/${questId}`;
 
     // Ping role hoặc fallback text
+    let baseContent = content || `Nhiệm vụ đã cập nhật: [${questName}](${questLink})`;
     if (PING_ROLE_ID) {
-        subComponents.push({
-            type: 10,
-            content: `<@&${PING_ROLE_ID}> Nhiệm Vụ đã cập nhật !!! [Click vào đây để xem chi tiết](${questLink})`
-        });
-    } else {
-        subComponents.push({
-            type: 10,
-            content: `Nhiệm vụ đã cập nhật: [${questName}](${questLink})`
-        });
+        baseContent = `<@&${PING_ROLE_ID}> Nhiệm Vụ đã cập nhật !!! [Click vào đây để xem chi tiết](${questLink})`;
     }
 
-    if (content) subComponents.push({ type: 10, content });
-
     const changeDescription = buildChangeDescription(oldQuest, newQuest, changes);
+    const heroUrl = config.assets?.hero ? `https://cdn.discordapp.com/${config.assets.hero}` : assets.discordQuests;
 
-    const CDN_BASE = 'https://cdn.discordapp.com/';
-    const heroUrl = config.assets?.hero ? `${CDN_BASE}${config.assets.hero}` : assets.discordQuests;
-
-    subComponents.push(
-        {
-            type: 10,
-            content: `# ${i18n.updated_quest} - [${questName}](${questLink})`
-        },
-        {
-            type: 12,
-            items: [{
-                media: { url: heroUrl },
-                description: questName
-            }]
-        },
-        { type: 14, divider: true, spacing: 1 },
-        { type: 10, content: `## ${i18n.changes_detected}` },
-        { type: 10, content: changeDescription },
-        { type: 14, divider: true, spacing: 1 },
-        { type: 10, content: `${i18n.quest_id}: \`${questId}\`` }
-    );
-
-    embed.push({ type: 17, components: subComponents });
+    const embed = {
+        title: `${i18n.updated_quest} - ${questName}`,
+        url: questLink,
+        description: `## ${i18n.changes_detected}\n${changeDescription}\n\n---\n# *Nếu như không thấy nhiệm vụ trong app Discord, trước hết phải khởi động lại ứng dụng. Nếu vẫn không thấy thì fake IP sang US, UK, v.v. Chúng tôi sẽ gửi thông báo về yêu cầu về IP vào mỗi buổi trưa (nếu có).*`,
+        thumbnail: { url: heroUrl },
+        footer: { text: `${i18n.quest_id}: ${questId}` }
+    };
 
     return {
-        flags: 1 << 15,
         username: i18n.name,
-        components: embed,
-        avatar_url: assets.avatarWebhook
+        avatar_url: assets.avatarWebhook,
+        content: baseContent,
+        embeds: [embed]
     };
 }
