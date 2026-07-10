@@ -57,7 +57,12 @@ export async function buildNewQuestEmbed(content, quest, assets) {
   const skuId = primaryReward?.sku_id || '???';
   const rewards = getReward(primaryReward, rewardName);
 
-  const rewardImageUrl = primaryReward?.asset ? `https://cdn.discordapp.com/${primaryReward.asset}` : null;
+  // Ảnh phần thưởng: lấy từ game_tile hoặc logotype
+  const rewardImageUrl = config.assets?.game_tile
+    ? `https://cdn.discordapp.com/${config.assets.game_tile}`
+    : (config.assets?.logotype
+        ? `https://cdn.discordapp.com/${config.assets.logotype}`
+        : null);
 
   const gameTitle = config.messages?.game_title || i18n.error.game_name;
   const gamePublisher = config.messages?.game_publisher || i18n.error.game_publisher;
@@ -70,7 +75,7 @@ export async function buildNewQuestEmbed(content, quest, assets) {
   const descriptionLines = [
     `*Nếu như không thấy nhiệm vụ trong app Discord, trước hết phải khởi động lại ứng dụng. Nếu vẫn không thấy thì fake IP sang US, UK, v.v. Chúng tôi sẽ gửi thông báo về yêu cầu về IP vào mỗi buổi trưa (nếu có).*`,
     '',
-    `**Thông tin nhiệm vụ**`,
+    `# **Thông tin nhiệm vụ**`,
     `**Thời hạn**: ${durationStr}`,
     `**Hạn chót nhận thưởng**: ${rewardDeadline}`,
     `**Nền tảng nhận**: ${platforms}`,
@@ -78,11 +83,11 @@ export async function buildNewQuestEmbed(content, quest, assets) {
     `**Application**: ${applicationName} (${applicationId})`,
     `**Tính năng**: ${features}`,
     '',
-    `**Yêu cầu**`,
+    `# **Yêu cầu**`,
     `Người dùng phải hoàn thành một trong các yêu cầu sau:`,
     `${taskList}`,
     '',
-    `**Phần thưởng**`,
+    `# **Phần thưởng**`,
     `**Loại phần thưởng**: ${rewards.rewardType}`,
     `**ID SKU**: \`${skuId}\``,
     `**Phần thưởng**: ${rewardName}${rewards.extraReward || ''}`,
@@ -92,13 +97,14 @@ export async function buildNewQuestEmbed(content, quest, assets) {
   ];
 
   const embedMain = {
-    title: questName,
-    description: descriptionLines.join('\n'),
+    title: Nhiệm Vụ Mới Đã Đến !!! - ${questName},
     image: { url: heroUrl },
-    footer: { text: `${i18n.quest_id}: ${questId}` }
+    description: descriptionLines.join('\n'),
+    footer: { text: `New Quest !!! - Được làm bởi Kanamoto Kumo` }
   };
 
   const embeds = [embedMain];
+
   if (rewardImageUrl) {
     embeds.push({
       description: `**Ảnh phần thưởng**`,
@@ -106,14 +112,18 @@ export async function buildNewQuestEmbed(content, quest, assets) {
     });
   }
 
-  // Nếu có video task thì thêm embed video sau phần thưởng
-  let videoUrl;
-  for (const task of Object.values(config.task_config_v2?.tasks || {})) {
-    if (task.type?.toUpperCase().includes('WATCH_VIDEO')) {
-      if (task.assets?.video?.url) videoUrl = task.assets.video.url;
-      else if (task.assets?.video_low_res?.url) videoUrl = task.assets.video_low_res.url;
-      else if (task.assets?.video_hls?.url) videoUrl = task.assets.video_hls.url;
-      break;
+  // Video nhiệm vụ: lấy từ hero_video, quest_bar_hero_video hoặc task.assets.video
+  let videoUrl = null;
+  if (config.assets?.hero_video) {
+    videoUrl = `https://cdn.discordapp.com/${config.assets.hero_video}`;
+  } else if (config.assets?.quest_bar_hero_video) {
+    videoUrl = `https://cdn.discordapp.com/${config.assets.quest_bar_hero_video}`;
+  } else {
+    for (const task of Object.values(config.task_config_v2?.tasks || {})) {
+      if (task.type?.toUpperCase().includes('WATCH_VIDEO') && task.assets?.video?.url) {
+        videoUrl = task.assets.video.url;
+        break;
+      }
     }
   }
   if (videoUrl) {
@@ -153,17 +163,17 @@ export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets
   const descriptionLines = [
     `*Nếu như không thấy nhiệm vụ trong app Discord, trước hết phải khởi động lại ứng dụng. Nếu vẫn không thấy thì fake IP sang US, UK, v.v. Chúng tôi sẽ gửi thông báo về yêu cầu về IP vào mỗi buổi trưa (nếu có).*`,
     '',
-    `**Thay đổi**`,
+    `# **Thay đổi**`,
     `${changeDescription}`,
     '',
     `**ID Nhiệm vụ**: \`${questId}\``
   ];
 
   const embed = {
-    title: questName,
-    description: descriptionLines.join('\n'),
+    title: Cập Nhật Nhiệm Vụ !!! - ${questName},
     image: { url: heroUrl },
-    footer: { text: `${i18n.quest_id}: ${questId}` }
+    description: descriptionLines.join('\n'),
+    footer: { text: `Quest Update !!! - Được làm bởi Kanamoto Kumo` }
   };
 
   return {
