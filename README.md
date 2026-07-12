@@ -6,7 +6,7 @@
 
 Track new Discord Quests and changes in real-time. Get notified every 5 minutes when a new quest appears or when quest details are updated.
 
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Status](https://img.shields.io/badge/Status-Update-yellow)
 ![Node](https://img.shields.io/badge/Node-20+-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -28,7 +28,7 @@ Track new Discord Quests and changes in real-time. Get notified every 5 minutes 
 ✅ **Internationalization** - Support for multiple languages (en-US, vi-VN)  
 ✅ **GitHub Actions** - Free 24/7 cloud hosting  
 ✅ **Error Tracking** - Optional error webhook for debugging  
-✅ **Rich Embeds** - Beautiful formatted Discord messages with images and details  
+✅ **Components V2** - Beautiful formatted Discord messages with images and details  
 
 ---
 
@@ -158,6 +158,7 @@ discord-quests-notifier/
 ├── .env.example             ← Environment template
 ├── package.json
 ├── state.json               ← Quest state (auto-managed)
+├── proxy.json
 └── README.md
 ```
 ## 📝 state.json Format
