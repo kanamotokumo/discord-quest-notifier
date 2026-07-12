@@ -1,98 +1,122 @@
 // src/embed.js
+// ─── Embed Builder v2 (always use v2 components; optional legacy flag only toggles flags field)
+// - Reads state.json to resolve placeholder assets
+// - Embeds hero image, reward image, and hero video directly into the embed via attachment://filename when available
+// - Returns { payload, attachments } where attachments is array of { url, filename, contentType, sourcePath }
+import fs from 'fs/promises';
+import path from 'path';
 import { i18n } from './language.js';
 import { formatDate, getReward, buildChangeDescription } from './utils.js';
 
 const PING_ROLE_ID = process.env.PING_ROLE_ID || '';
+// If true, include legacy flags field (keeps embed array but UI is v2 components). Default false.
+const INCLUDE_LEGACY_FLAG = (process.env.INCLUDE_LEGACY_FLAG || 'false').toLowerCase() === 'true';
 
-/* Helpers */
-function extractPlatform(config) {
-  if (!config) return '???';
-  if (Array.isArray(config.platforms) && config.platforms.length) return config.platforms.join(', ');
-  if (config.platform) return config.platform;
-  if (config.platform_type) return config.platform_type;
-  return 'Đa nền tảng';
-}
-
-function extractFeature(config) {
-  if (!config) return '???';
-  if (Array.isArray(config.features) && config.features.length) return config.features.join(', ');
-  if (config.feature) return config.feature;
-  if (Array.isArray(config.feature_flags) && config.feature_flags.length) return config.feature_flags.join(', ');
-  return '???';
-}
-
-function buildTasksList(config) {
-  const tasks = Object.values(config.task_config_v2?.tasks || {});
-  if (!tasks.length) return '* ???';
-  return tasks.map(task => {
-    const minutes = task.target ? Math.round(task.target / 60) : 0;
-    const type = String(task.type || '').toLowerCase().replace(/_/g, ' ');
-    const name = type ? type.replace(/^\w/, c => c.toUpperCase()) : 'Task';
-    return `* ${name} (${minutes} phút)`;
-  }).join('\n');
-}
-
-/* Resolve asset paths inside config.assets */
-function resolveRewardImagePath(config) {
-  const a = config.assets || {};
-  return a.game_tile || a.game_tile_light || a.game_tile_dark || a.logotype || a.logotype_light || a.logotype_dark || null;
-}
-function resolveHeroPath(config) {
-  return config.assets?.hero || null;
-}
-function resolveHeroVideoPath(config) {
-  return config.assets?.hero_video || config.assets?.quest_bar_hero_video || null;
-}
-
-/* Build attachments array from relative asset paths
-   Each attachment: { url, filename, contentType }
-*/
-function buildAttachmentsFromConfig(config, assetsFallback, questId) {
-  const attachments = [];
-  const heroPath = resolveHeroPath(config);
-  const rewardPath = resolveRewardImagePath(config);
-  const heroVideoPath = resolveHeroVideoPath(config);
-
-  if (heroPath) {
-    const ext = heroPath.slice(heroPath.lastIndexOf('.')) || '.png';
-    attachments.push({
-      url: `https://cdn.discordapp.com/${heroPath}`,
-      filename: `hero_${questId}${ext}`,
-      contentType: 'image/*'
-    });
-  } else if (assetsFallback?.discordQuests) {
-    attachments.push({
-      url: assetsFallback.discordQuests,
-      filename: `hero_fallback_${questId}.png`,
-      contentType: 'image/*'
-    });
+/**
+ * Read state.json safely (used to resolve placeholder asset paths)
+ */
+async function readStateFile() {
+  try {
+    const p = path.resolve(process.cwd(), 'state.json');
+    const raw = await fs.readFile(p, 'utf8').catch(() => null);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch (err) {
+    return {};
   }
-
-  if (rewardPath) {
-    const ext = rewardPath.slice(rewardPath.lastIndexOf('.')) || '.png';
-    attachments.push({
-      url: `https://cdn.discordapp.com/${rewardPath}`,
-      filename: `reward_${questId}${ext}`,
-      contentType: 'image/*'
-    });
-  }
-
-  if (heroVideoPath) {
-    const ext = heroVideoPath.slice(heroVideoPath.lastIndexOf('.')) || '.mp4';
-    attachments.push({
-      url: `https://cdn.discordapp.com/${heroVideoPath}`,
-      filename: `video_${questId}${ext}`,
-      contentType: 'video/mp4'
-    });
-  }
-
-  return attachments;
 }
 
 /**
- * Build payload + attachments for new quest
- * returns { payload, attachments }
- * Single embed only: hero -> image, reward -> thumbnail, video -> embed.video (if possible) + button
+ * Build CDN URL from relative asset path or return absolute URL as-is
+ */
+function buildCdnUrl(assetPath) {
+  if (!assetPath) return null;
+  const s = String(assetPath).trim();
+  if (!s) return null;
+  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+  const normalized = s.replace(/^\/+/, '');
+  return `https://cdn.discordapp.com/${normalized}`;
+}
+
+/**
+ * Resolve an asset value (may be placeholder) using state.json fallback for the same questId
+ * Returns normalized asset path string or null
+ */
+async function resolveAssetPath(assetValue, questId) {
+  if (!assetValue) return null;
+  const trimmed = String(assetValue).trim();
+  if (!trimmed) return null;
+
+  // If placeholder-like, try to resolve from state.json
+  if (/PLACEHOLDER/i.test(trimmed) || trimmed.toLowerCase() === 'placeholder') {
+    try {
+      const state = await readStateFile();
+      const prev = state?.quests?.[questId];
+      const prevConfig = prev?.config || {};
+      const prevAssets = prevConfig.assets || {};
+      const candidates = [
+        prevAssets.hero,
+        prevAssets.hero_video,
+        prevAssets.quest_bar_hero,
+        prevAssets.quest_bar_hero_video,
+        prevAssets.game_tile,
+        prevAssets.game_tile_light,
+        prevAssets.game_tile_dark,
+        prevAssets.logotype,
+        prevAssets.logotype_light,
+        prevAssets.logotype_dark
+      ];
+      for (const c of candidates) {
+        if (c && !/PLACEHOLDER/i.test(String(c))) return String(c).trim();
+      }
+    } catch (e) {
+      // ignore and return null
+    }
+    return null;
+  }
+
+  return trimmed;
+}
+
+/**
+ * Build attachments list from config.
+ * Returns { attachments, heroAttachment, rewardAttachment, videoAttachment }
+ * Each attachment: { url, filename, contentType, sourcePath }
+ */
+async function buildAttachmentsFromConfig(config, assetsFallback, questId) {
+  const attachments = [];
+
+  const heroRaw = config?.assets?.hero || config?.assets?.quest_bar_hero || null;
+  const heroVideoRaw = config?.assets?.hero_video || config?.assets?.quest_bar_hero_video || null;
+  const rewardRaw = config?.assets?.game_tile || config?.assets?.game_tile_light || config?.assets?.game_tile_dark || config?.assets?.logotype || config?.assets?.logotype_light || config?.assets?.logotype_dark || null;
+
+  const heroPath = await resolveAssetPath(heroRaw, questId);
+  const heroVideoPath = await resolveAssetPath(heroVideoRaw, questId);
+  const rewardPath = await resolveAssetPath(rewardRaw, questId);
+
+  function push(assetPath, prefix) {
+    if (!assetPath) return null;
+    const url = buildCdnUrl(assetPath);
+    if (!url) return null;
+    const ext = path.extname(assetPath) || '';
+    const safeExt = ext || (/\.(mp4|webm)$/i.test(assetPath) ? '.mp4' : '.png');
+    const filename = `${prefix}_${questId}${safeExt}`;
+    const contentType = /\.(mp4|webm)$/i.test(safeExt) ? 'video/mp4' : 'image/*';
+    const entry = { url, filename, contentType, sourcePath: assetPath };
+    attachments.push(entry);
+    return entry;
+  }
+
+  const heroAttachment = push(heroPath, 'hero') || (assetsFallback?.discordQuests ? { url: assetsFallback.discordQuests, filename: `hero_fallback_${questId}.png`, contentType: 'image/*', sourcePath: assetsFallback.discordQuests } : null);
+  const rewardAttachment = push(rewardPath, 'reward') || null;
+  const videoAttachment = push(heroVideoPath, 'video') || null;
+
+  return { attachments, heroAttachment, rewardAttachment, videoAttachment };
+}
+
+/**
+ * Build embed payload + attachments for new quest
+ * Always uses v2 components; includes images/videos directly in embed via attachment:// when available
  */
 export async function buildNewQuestEmbed(content, quest, assets) {
   const config = quest?.config;
@@ -104,111 +128,103 @@ export async function buildNewQuestEmbed(content, quest, assets) {
 
   let baseContent = content || `Nhiệm vụ mới: ${questName}`;
   if (PING_ROLE_ID) {
-    baseContent = `<@&${PING_ROLE_ID}> Nhiệm Vụ mới đã đến !!! [Click vào đây để làm nhiệm vụ](${questLink})`;
+    baseContent = `<@&${PING_ROLE_ID}> ${i18n.new_quest_mention || 'Nhiệm Vụ mới đã đến'} — ${i18n.open_quest || 'Mở nhiệm vụ'}: ${questLink}`;
   }
 
   const durationStr = `${formatDate(config.starts_at)} - ${formatDate(config.expires_at)}`;
-  const rewardDeadline = formatDate(config.rewards_config?.rewards_expire_at) || '???';
+  const rewardDeadline = formatDate(config.rewards_config?.rewards_expire_at) || '—';
   const primaryReward = config.rewards_config?.rewards?.[0] || null;
   const rewardName = primaryReward?.messages?.name || i18n.error.reward;
-  const skuId = primaryReward?.sku_id || '???';
+  const skuId = primaryReward?.sku_id || '—';
   const rewards = getReward(primaryReward, rewardName);
 
-  // Build attachments list
-  const attachments = buildAttachmentsFromConfig(config, assets, questId);
+  const { attachments, heroAttachment, rewardAttachment, videoAttachment } = await buildAttachmentsFromConfig(config, assets, questId);
 
-  // Determine attachment references for embed (attachment://filename) or fallback remote URL
-  const heroAttachment = attachments.find(a => a.filename && a.filename.startsWith(`hero_${questId}`)) || attachments.find(a => a.filename && a.filename.startsWith(`hero_fallback_${questId}`));
-  const rewardAttachment = attachments.find(a => a.filename && a.filename.startsWith(`reward_${questId}`));
-  const videoAttachment = attachments.find(a => a.filename && a.filename.startsWith(`video_${questId}`));
-
-  const heroImageRef = heroAttachment ? `attachment://${heroAttachment.filename}` : (assets.discordQuests || null);
-  const rewardImageRef = rewardAttachment ? `attachment://${rewardAttachment.filename}` : null;
-  const videoAttachmentRef = videoAttachment ? `attachment://${videoAttachment.filename}` : null;
-  const videoFallbackUrl = resolveHeroVideoPath(config) ? `https://cdn.discordapp.com/${resolveHeroVideoPath(config)}` : null;
-  const videoRef = videoAttachmentRef || videoFallbackUrl || null;
+  // Build embed references (prefer attachment://)
+  const heroRef = heroAttachment ? `attachment://${heroAttachment.filename}` : (assets.discordQuests || null);
+  const rewardRef = rewardAttachment ? `attachment://${rewardAttachment.filename}` : null;
+  const videoRef = videoAttachment ? `attachment://${videoAttachment.filename}` : (heroAttachment?.sourcePath ? buildCdnUrl(heroAttachment.sourcePath) : null);
 
   const gameTitle = config.messages?.game_title || i18n.error.game_name;
   const gamePublisher = config.messages?.game_publisher || i18n.error.game_publisher;
-  const applicationName = config.application?.name || '???';
-  const applicationId = config.application?.id || '';
+  const applicationName = config.application?.name || '—';
+  const applicationId = config.application?.id || '—';
 
-  const platforms = extractPlatform(config);
-  const features = extractFeature(config);
-  const taskList = buildTasksList(config);
+  const platforms = Array.isArray(config.platforms) && config.platforms.length ? config.platforms.join(', ') : (config.platform || config.platform_type || 'Đa nền tảng');
+  const features = Array.isArray(config.features) && config.features.length ? config.features.join(', ') : (config.feature || config.feature_flags || '—');
 
-  const descriptionLines = [
-    `*Nếu như không thấy nhiệm vụ trong app Discord, trước hết phải khởi động lại ứng dụng. Nếu vẫn không thấy thì fake IP sang US, UK, v.v.*`,
+  const tasks = Object.values(config.task_config_v2?.tasks || {});
+  const tasksText = tasks.length ? tasks.map(t => {
+    const minutes = t.target ? Math.round(t.target / 60) : 0;
+    const type = String(t.type || '').toLowerCase().replace(/_/g, ' ');
+    const name = type ? type.replace(/^\w/, c => c.toUpperCase()) : 'Task';
+    return `• ${name} (${minutes} phút)`;
+  }).join('\n') : '* —';
+
+  const description = [
+    `*${i18n.note_restart_app || 'Nếu không thấy nhiệm vụ trong app, thử khởi động lại ứng dụng.'}*`,
     '',
-    `# **Thông tin nhiệm vụ**`,
-    `**Thời hạn**: ${durationStr}`,
-    `**Hạn chót nhận thưởng**: ${rewardDeadline}`,
-    `**Nền tảng nhận**: ${platforms}`,
-    `**Game**: ${gameTitle} (${gamePublisher})`,
-    `**Application**: ${applicationName} (${applicationId})`,
-    `**Tính năng**: ${features}`,
+    `**${i18n.quest_info || '# Thông tin nhiệm vụ'}**`,
+    `**${i18n.duration || 'Thời hạn'}**: ${durationStr}`,
+    `**${i18n.reward_deadline || 'Hạn chót nhận thưởng'}**: ${rewardDeadline}`,
+    `**${i18n.platforms || 'Nền tảng'}**: ${platforms}`,
+    `**${i18n.game || 'Game'}**: ${gameTitle} (${gamePublisher})`,
+    `**${i18n.application || 'Application'}**: ${applicationName} (${applicationId})`,
+    `**${i18n.features || 'Tính năng'}**: ${features}`,
     '',
-    `# **Yêu cầu**`,
-    `Người dùng phải hoàn thành một trong các yêu cầu sau:`,
-    `${taskList}`,
+    `**${i18n.requirements || '# Yêu cầu'}**`,
+    tasksText,
     '',
-    `# **Phần thưởng**`,
-    `**Loại phần thưởng**: ${rewards.rewardType}`,
-    `**ID SKU**: \`${skuId}\``,
-    `**Phần thưởng**: ${rewardName}${rewards.extraReward || ''}`,
-    `${rewards.expires || ''}`
-  ];
+    `**${i18n.rewards || '# Phần thưởng'}**`,
+    `**${i18n.reward_type || 'Loại'}**: ${rewards.rewardType}`,
+    `**${i18n.sku || 'SKU'}**: \`${skuId}\``,
+    `**${i18n.reward_name || 'Phần thưởng'}**: ${rewardName}${rewards.extraReward || ''}`,
+    `${rewards.expires || ''}`,
+    '',
+    `**${i18n.quest_id || 'ID Nhiệm vụ'}**: \`${questId}\``
+  ].join('\n');
 
-  // Note: removed inline video link from description to avoid duplication
-  descriptionLines.push('', `**ID Nhiệm vụ**: ${questId}`);
-
-  // Single embed: hero image + thumbnail reward + (attempt) embed.video
   const embed = {
     title: questName,
-    description: descriptionLines.join('\n'),
-    thumbnail: rewardImageRef ? { url: rewardImageRef } : undefined,
-    image: heroImageRef ? { url: heroImageRef } : undefined,
+    description,
+    color: 0x2f3136,
     footer: { text: `New Quest Appeared !!! - Được làm bởi Korchi Community` }
   };
 
-  // Try to set embed.video if we have an attachment reference (Discord may ignore if not supported)
-  if (videoAttachmentRef) {
-    embed.video = { url: videoAttachmentRef };
-  }
+  if (heroRef) embed.image = { url: heroRef };
+  if (rewardRef) embed.thumbnail = { url: rewardRef };
+  // embed.video may be ignored by Discord for webhooks, but include if available
+  if (videoUrl) embed.video = { url:videoUrl };
 
-  // Components (buttons) — keep single action row with relevant links
+  // Components v2 (action row with buttons)
   const components = [];
   const actionRow = { type: 1, components: [] };
 
   actionRow.components.push({
     type: 2,
     style: 5,
-    label: 'Mở nhiệm vụ',
+    label: i18n.open_quest_button || 'Mở nhiệm vụ',
     url: questLink
   });
 
-  if (videoRef) {
-    const videoButtonUrl = videoFallbackUrl || (videoAttachment ? videoAttachment.url : null);
-    if (videoButtonUrl) {
-      actionRow.components.push({
-        type: 2,
-        style: 5,
-        label: 'Xem video',
-        url: videoButtonUrl
-      });
-    }
+  const videoButtonUrl = videoAttachment ? videoAttachment.url : (videoRef || null);
+  if (videoButtonUrl) {
+    actionRow.components.push({
+      type: 2,
+      style: 5,
+      label: i18n.view_video_button || 'Xem video',
+      url: videoButtonUrl
+    });
   }
 
-  if (rewardAttachment) {
-    const rewardUrlFallback = rewardAttachment ? `https://cdn.discordapp.com/${resolveRewardImagePath(config)}` : (assets.discordQuests || '');
-    if (rewardUrlFallback) {
-      actionRow.components.push({
-        type: 2,
-        style: 5,
-        label: 'Ảnh phần thưởng',
-        url: rewardUrlFallback
-      });
-    }
+  const rewardButtonUrl = rewardAttachment ? rewardAttachment.url : (assets.discordQuests || null);
+  if (rewardButtonUrl) {
+    actionRow.components.push({
+      type: 2,
+      style: 5,
+      label: i18n.view_reward_button || 'Ảnh phần thưởng',
+      url: currentRewardIcon.href
+    });
   }
 
   if (actionRow.components.length) components.push(actionRow);
@@ -219,11 +235,16 @@ export async function buildNewQuestEmbed(content, quest, assets) {
     components
   };
 
+  // Optionally include legacy flags field if requested (keeps embed array but doesn't change components)
+  if (INCLUDE_LEGACY_FLAG) {
+    payload.flags = 1 << 15;
+  }
+
   return { payload, attachments };
 }
 
 /**
- * Build payload + attachments for updated quest (single embed)
+ * Build embed payload + attachments for updated quest
  */
 export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets, changes) {
   const config = newQuest?.config;
@@ -235,45 +256,36 @@ export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets
 
   let baseContent = content || `Nhiệm vụ đã cập nhật: ${questName}`;
   if (PING_ROLE_ID) {
-    baseContent = `<@&${PING_ROLE_ID}> Nhiệm Vụ đã cập nhật !!! [Click vào đây để xem chi tiết](${questLink})`;
+    baseContent = `<@&${PING_ROLE_ID}> ${i18n.updated_quest_mention || 'Nhiệm Vụ đã cập nhật'} — ${i18n.open_quest || 'Xem chi tiết'}: ${questLink}`;
   }
 
-  const attachments = buildAttachmentsFromConfig(config, assets, questId);
+  const { attachments, heroAttachment, rewardAttachment, videoAttachment } = await buildAttachmentsFromConfig(config, assets, questId);
 
-  const heroAttachment = attachments.find(a => a.filename && a.filename.startsWith(`hero_${questId}`)) || attachments.find(a => a.filename && a.filename.startsWith(`hero_fallback_${questId}`));
-  const rewardAttachment = attachments.find(a => a.filename && a.filename.startsWith(`reward_${questId}`));
-  const videoAttachment = attachments.find(a => a.filename && a.filename.startsWith(`video_${questId}`));
+  const heroRef = heroAttachment ? `attachment://${heroAttachment.filename}` : (assets.discordQuests || null);
+  const rewardRef = rewardAttachment ? `attachment://${rewardAttachment.filename}` : null;
+  const videoRef = videoAttachment ? `attachment://${videoAttachment.filename}` : (heroAttachment?.sourcePath ? buildCdnUrl(heroAttachment.sourcePath) : null);
 
-  const heroImageRef = heroAttachment ? `attachment://${heroAttachment.filename}` : (assets.discordQuests || null);
-  const rewardImageRef = rewardAttachment ? `attachment://${rewardAttachment.filename}` : null;
-  const videoAttachmentRef = videoAttachment ? `attachment://${videoAttachment.filename}` : null;
-  const videoFallbackUrl = resolveHeroVideoPath(config) ? `https://cdn.discordapp.com/${resolveHeroVideoPath(config)}` : null;
-  const videoRef = videoAttachmentRef || videoFallbackUrl || null;
+  const changeDescription = buildChangeDescription(oldQuest, newQuest, changes) || (i18n.no_changes || 'Không có thay đổi');
 
-  const changeDescription = buildChangeDescription(oldQuest, newQuest, changes) || 'Không có thay đổi';
-
-  const descriptionLines = [
-    `*Nếu như không thấy nhiệm vụ trong app Discord, trước hết phải khởi động lại ứng dụng.*`,
+  const description = [
+    `*${i18n.note_restart_app || 'Nếu không thấy nhiệm vụ trong app, thử khởi động lại ứng dụng.'}*`,
     '',
-    `# **Thay đổi**`,
-    `${changeDescription}`,
-    ''
-  ];
-
-  // Note: removed inline video link from description to avoid duplication
-  descriptionLines.push(`**ID Nhiệm vụ**: \`${questId}\``);
+    `**${i18n.changes || 'Thay đổi'}**`,
+    changeDescription,
+    '',
+    `**${i18n.quest_id || 'ID Nhiệm vụ'}**: \`${questId}\``
+  ].join('\n');
 
   const embed = {
     title: questName,
-    description: descriptionLines.join('\n'),
-    thumbnail: rewardImageRef ? { url: rewardImageRef } : undefined,
-    image: heroImageRef ? { url: heroImageRef } : undefined,
-    footer: { text: `Updated Quest !!! - Được làm bởi Korchi Community` }
+    description,
+    color: 0xffcc00,
+    footer: { text: `${i18n.quest_id || 'ID'}: ${questId}` }
   };
 
-  if (videoAttachmentRef) {
-    embed.video = { url: videoAttachmentRef };
-  }
+  if (heroRef) embed.image = { url: heroRef };
+  if (rewardRef) embed.thumbnail = { url: rewardRef };
+  if (videoRef) embed.video = { url: videoRef };
 
   const components = [];
   const actionRow = { type: 1, components: [] };
@@ -281,32 +293,28 @@ export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets
   actionRow.components.push({
     type: 2,
     style: 5,
-    label: 'Mở nhiệm vụ',
+    label: i18n.open_quest_button || 'Mở nhiệm vụ',
     url: questLink
   });
 
-  if (videoRef) {
-    const videoButtonUrl = videoFallbackUrl || (videoAttachment ? videoAttachment.url : null);
-    if (videoButtonUrl) {
-      actionRow.components.push({
-        type: 2,
-        style: 5,
-        label: 'Xem video',
-        url: videoButtonUrl
-      });
-    }
+  const videoButtonUrl = videoAttachment ? videoAttachment.url : (videoRef || null);
+  if (videoButtonUrl) {
+    actionRow.components.push({
+      type: 2,
+      style: 5,
+      label: i18n.view_video_button || 'Xem video',
+      url: videoButtonUrl
+    });
   }
 
-  if (rewardAttachment) {
-    const rewardUrlFallback = rewardAttachment ? `https://cdn.discordapp.com/${resolveRewardImagePath(config)}` : (assets.discordQuests || '');
-    if (rewardUrlFallback) {
-      actionRow.components.push({
-        type: 2,
-        style: 5,
-        label: 'Ảnh phần thưởng',
-        url: rewardUrlFallback
-      });
-    }
+  const rewardButtonUrl = rewardAttachment ? rewardAttachment.url : (assets.discordQuests || null);
+  if (rewardButtonUrl) {
+    actionRow.components.push({
+      type: 2,
+      style: 5,
+      label: i18n.view_reward_button || 'Ảnh phần thưởng',
+      url: rewardButtonUrl
+    });
   }
 
   if (actionRow.components.length) components.push(actionRow);
@@ -316,6 +324,10 @@ export async function buildUpdatedQuestEmbed(content, oldQuest, newQuest, assets
     embeds: [embed],
     components
   };
+
+  if (INCLUDE_LEGACY_FLAG) {
+    payload.flags = 1 << 15;
+  }
 
   return { payload, attachments };
 }
