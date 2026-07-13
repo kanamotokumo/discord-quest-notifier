@@ -57,8 +57,8 @@
                 }
               ],
               "external_ids": [
-                "1854680102",
-                "1668346801"
+                "1668346801",
+                "1854680102"
               ]
             },
             "PLAY_ON_PLAYSTATION": {
@@ -71,9 +71,9 @@
               ],
               "external_ids": [
                 "PPSA28883_00",
+                "PPSA28884_00",
                 "PPSA28881_00",
-                "PPSA28882_00",
-                "PPSA28884_00"
+                "PPSA28882_00"
               ]
             }
           },
@@ -109,9 +109,10 @@
       },
       "hash": "eyJxdWVzdF9uYW1lIjoiTmV3IFNlYXNvbiBNZWx0ZG93biIsImdhbWVfdGl0bGUiOiJEZWx0YSBGb3JjZSIsImdhbWVfcHVibGlzaGVyIjoiVGVhbSBKYWRlIiwiYXBwbGljYXRpb25faWQiOiIxMzE0NjgyODk0MTA2NDk3MDk2IiwiYXBwbGljYXRpb25fbmFtZSI6IkRlbHRhIEZvcmNlIiwic3RhcnRzX2F0IjoiMjAyNi0wNi0zMFQxNzowMDowMCswMDowMCIsImV4cGlyZXNfYXQiOiIyMDI2LTA3LTE0VDAwOjAwOjAwKzAwOjAwIiwicmV3YXJkX2V4cGlyZXNfYXQiOiIyMDI2LTA4LTEzVDAwOjAwOjAwKzAwOjAwIiwiY29sb3JfcHJpbWFyeSI6IiM0NzUyQzQiLCJjb2xvcl9zZWNvbmRhcnkiOiIjMDAwMDAwIiwiZmVhdHVyZXMiOlsxNV0sInJld2FyZF9wbGF0Zm9ybXMiOlswXSwidGFza3MiOlt7ImtleSI6IlBMQVlfT05fREVTS1RPUCIsInR5cGUiOiJQTEFZX09OX0RFU0tUT1AiLCJ0YXJnZXQiOjkwMH0seyJrZXkiOiJQTEFZX09OX1BMQVlTVEFUSU9OIiwidHlwZSI6IlBMQVlfT05fUExBWVNUQVRJT04iLCJ0YXJnZXQiOjkwMH0seyJrZXkiOiJQTEFZX09OX1hCT1giLCJ0eXBlIjoiUExBWV9PTl9YQk9YIiwidGFyZ2V0Ijo5MDB9XSwicmV3YXJkcyI6W3sic2t1X2lkIjoiMTI4Nzg4MTczOTUzMTk3NjgxNSIsInR5cGUiOjQsIm5hbWUiOiI3MDAgT3JicyIsIm9yYl9xdWFudGl0eSI6NzAwLCJleHBpcmVzX2F0IjpudWxsfV0sImFzc2V0cyI6eyJoZXJvIjoicXVlc3RzLzE1MTk1MzczMDc3MTg1MjA5MTIvMTUyMTUzNTU1MTYzNzk0NjU5OS5qcGciLCJoZXJvX3ZpZGVvIjoicXVlc3RzLzE1MTk1MzczMDc3MTg1MjA5MTIvMTUyMTUzNTQ0NTA2NDg3NjIzM183MjAubXA0IiwicXVlc3RfYmFyX2hlcm8iOiJxdWVzdHMvMTUxOTUzNzMwNzcxODUyMDkxMi8xNTIxNTM1NDE4NTk0NzU0NjQxLmpwZyIsInF1ZXN0X2Jhcl9oZXJvX3ZpZGVvIjoicXVlc3RzLzE1MTk1MzczMDc3MTg1MjA5MTIvMTUyMTUzNTQ1OTQ4OTIyMjkwOF83MjAubXA0IiwiZ2FtZV90aWxlIjoiMTUxOTU0MTUwNTI2NDQ1MTY1NS5wbmciLCJnYW1lX3RpbGVfbGlnaHQiOiJxdWVzdHMvMTUxOTUzNzMwNzcxODUyMDkxMi8xNTE5NTQwMjUwNTA5MDQ5OTU3LnBuZyIsImdhbWVfdGlsZV9kYXJrIjoicXVlc3RzLzE1MTk1MzczMDc3MTg1MjA5MTIvMTUxOTU0MDI1MDUwOTA0OTk1Ny5wbmciLCJsb2dvdHlwZSI6IjE1MjExNjg0MDQzNTcwNTg2MzEucG5nIiwibG9nb3R5cGVfbGlnaHQiOiJxdWVzdHMvMTUxOTUzNzMwNzcxODUyMDkxMi8xNTIxMTY4MzgzOTU2MDkxMDQwLnBuZyIsImxvZ290eXBlX2RhcmsiOiJxdWVzdHMvMTUxOTUzNzMwNzcxODUyMDkxMi8xNTE5NTQwMjQ4NDYyMjI5NTU0LnBuZyJ9fQ==",
       "starts_at": "2026-06-30T17:00:00+00:00",
-      "expires_at": "2026-08-13T00:00:00+00:00",
+      "expires_at": "2026-07-14T00:00:00+00:00",
       "sent_at": "2026-07-13T11:45:58.314Z",
-      "type": "new"
+      "type": "updated",
+      "updated_at": "2026-07-13T12:07:26.247Z"
     },
     "1521260970586931220": {
       "id": "1521260970586931220",
@@ -489,5 +490,5 @@
       "type": "new"
     }
   },
-  "last_check": "2026-07-13T11:46:05.119Z"
+  "last_check": "2026-07-13T12:07:27.349Z"
 }
