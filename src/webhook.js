@@ -4,13 +4,56 @@ import FormData from 'form-data';
 import { error, log } from './logging.js';
 
 const DEFAULT_MAX_BYTES = Number(process.env.MAX_ATTACHMENT_BYTES) || 16 * 1024 * 1024; // 16MB
+const BROWSER_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
-async function fetchBufferFromUrl(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch asset ${url}: ${res.status}`);
-  const buffer = await res.buffer();
-  const length = Number(res.headers.get('content-length')) || buffer.length;
-  return { buffer, length };
+/**
+ * Fetch a remote asset as a Buffer.
+ * - Sends a browser-like User-Agent/Accept (Discord's CDN increasingly 403s
+ *   plain, header-less requests from automated/cloud origins).
+ * - Retries a couple of times on 403/429 before giving up, since this has
+ *   been observed to be intermittent rather than consistent.
+ * - Uses `.arrayBuffer()` instead of the deprecated `.buffer()`.
+ */
+async function fetchBufferFromUrl(url, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': BROWSER_USER_AGENT,
+        Accept: 'image/*,video/*;q=0.9,*/*;q=0.8',
+      },
+    });
+
+    if (res.ok) {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const length = Number(res.headers.get('content-length')) || buffer.length;
+      return { buffer, length };
+    }
+
+    if ((res.status === 403 || res.status === 429) && attempt < retries) {
+      const waitMs = 500 * (attempt + 1);
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+      continue;
+    }
+
+    throw new Error(`Failed to fetch asset ${url}: ${res.status}`);
+  }
+}
+
+/**
+ * Build the final webhook URL, appending query params Discord requires:
+ * - `wait=true` (unchanged previous behavior)
+ * - `with_components=true` — REQUIRED whenever the payload includes a
+ *   `components` array sent through a webhook, or Discord silently ignores
+ *   them (this applies to both V1 action-row buttons and V2 containers).
+ */
+function buildWebhookUrl(webhookUrl, payload) {
+  const url = new URL(webhookUrl);
+  if (payload?.wait) url.searchParams.append('wait', 'true');
+  if (Array.isArray(payload?.components) && payload.components.length > 0) {
+    url.searchParams.append('with_components', 'true');
+  }
+  return url;
 }
 
 /**
@@ -20,6 +63,12 @@ async function fetchBufferFromUrl(url) {
  * - attachments: [{ url, filename, contentType? }]
  *
  * Returns true on success, false on failure.
+ *
+ * Note: with the current embed.js, `attachments` is always [] (images are
+ * linked directly via their Discord CDN URL instead of being downloaded and
+ * re-uploaded), so the multipart branch below is effectively dormant right
+ * now. It's kept — with the fixes above — in case something else in the
+ * codebase ever calls sendWebhook() with real attachments again.
  */
 export async function sendWebhook(webhookUrl, payload, attachments = []) {
   if (!webhookUrl) {
@@ -30,15 +79,13 @@ export async function sendWebhook(webhookUrl, payload, attachments = []) {
   try {
     // If no attachments, send JSON as before
     if (!attachments || attachments.length === 0) {
-      const url = new URL(webhookUrl);
-      // keep previous behavior: allow wait param if present in payload (optional)
-      if (payload?.wait) url.searchParams.append('wait', 'true');
+      const url = buildWebhookUrl(webhookUrl, payload);
 
       const res = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': BROWSER_USER_AGENT,
         },
         body: JSON.stringify(payload),
       });
@@ -66,7 +113,10 @@ export async function sendWebhook(webhookUrl, payload, attachments = []) {
           continue;
         }
         const name = att.filename || `file_${fileIndex}`;
-        form.append(`files[${fileIndex}]`, buffer, { filename: name, contentType: att.contentType || 'application/octet-stream' });
+        form.append(`files[${fileIndex}]`, buffer, {
+          filename: name,
+          contentType: att.contentType || 'application/octet-stream',
+        });
         fileIndex++;
       } catch (err) {
         error(`Failed to fetch attachment ${att.url}: ${err.message}`);
@@ -74,8 +124,7 @@ export async function sendWebhook(webhookUrl, payload, attachments = []) {
       }
     }
 
-    const url = new URL(webhookUrl);
-    // do not append wait param here by default; payload can include it if needed
+    const url = buildWebhookUrl(webhookUrl, payload);
 
     const res = await fetch(url.toString(), {
       method: 'POST',
@@ -108,4 +157,4 @@ export async function sendErrorNotice(message) {
   };
 
   await sendWebhook(ERROR_WEBHOOK, payload, []);
-}
+    }
