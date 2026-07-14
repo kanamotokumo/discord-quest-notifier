@@ -242,6 +242,9 @@ The project uses assets from the `assets/` directory on your repository:
 ✅ Delete `state.json` - it will be recreated on next run 
 ## 🤝 Contributing
 Feel free to submit issues and enhancement requests!
+## 😍 Acknowledgements
+- A special thank you to those who helped me create and refine "Discord Quest Notifier."
++ [@mc-none-vn](https://github.com/mc-none-vn) - The person who created the repository helped me with the work and creation process.
 ## 📄 License
 MIT License - See LICENSE file for details
 ## ⚠️ Legal Disclaimer
