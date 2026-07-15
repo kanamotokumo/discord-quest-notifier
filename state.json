@@ -251,8 +251,8 @@
                 }
               ],
               "external_ids": [
-                "CUSA52342_00",
-                "PPSA27360_00"
+                "PPSA27360_00",
+                "CUSA52342_00"
               ]
             }
           },
@@ -291,8 +291,93 @@
       "expires_at": "2026-07-20T06:59:00+00:00",
       "sent_at": "2026-07-15T13:45:30.370Z",
       "type": "updated",
-      "updated_at": "2026-07-15T16:23:00.696Z"
+      "updated_at": "2026-07-15T19:12:43.167Z"
+    },
+    "1526440558577582090": {
+      "id": "1526440558577582090",
+      "config": {
+        "id": "1526440558577582090",
+        "config_version": 2,
+        "starts_at": "2026-07-15T17:00:00+00:00",
+        "expires_at": "2026-07-25T00:00:00+00:00",
+        "features": [
+          15
+        ],
+        "application": {
+          "link": "https://www.roblox.com/spotlight/sports?gsrbx=1",
+          "id": "363445589247131668",
+          "name": "Roblox"
+        },
+        "assets": {
+          "hero": "quests/1525240906611949598/1525241968345616615.jpg",
+          "hero_video": "quests/1525240906611949598/1525241882446135497_720.mp4",
+          "quest_bar_hero_blurhash": "mrYFGoYEmX1kmoSXCKKHQIk=",
+          "quest_bar_hero": "quests/1525240906611949598/1525241968345616615.jpg",
+          "quest_bar_hero_video": "quests/1525240906611949598/1525241882446135497_720.mp4",
+          "game_tile": "PLACEHOLDER",
+          "logotype": "PLACEHOLDER",
+          "game_tile_light": "quests/1525240906611949598/1525241675868536985.png",
+          "game_tile_dark": "quests/1525240906611949598/1525241675977593035.png",
+          "logotype_light": "quests/1525240906611949598/1525241715315965992.png",
+          "logotype_dark": "quests/1525240906611949598/1525241715164975304.png"
+        },
+        "colors": {
+          "primary": "#4752C4",
+          "secondary": "#000000"
+        },
+        "messages": {
+          "quest_name": "Tennis Zero",
+          "game_title": "Tennis Zero on Roblox",
+          "game_publisher": "ROBLOX"
+        },
+        "task_config_v2": {
+          "tasks": {
+            "PLAY_ON_DESKTOP": {
+              "type": "PLAY_ON_DESKTOP",
+              "target": 900,
+              "applications": [
+                {
+                  "id": "363445589247131668"
+                }
+              ]
+            }
+          },
+          "join_operator": "or"
+        },
+        "rewards_config": {
+          "assignment_method": 1,
+          "rewards": [
+            {
+              "type": 4,
+              "sku_id": "1287881739531976815",
+              "messages": {
+                "name": "700 Orbs",
+                "name_with_article": "700 Orbs",
+                "redemption_instructions_by_platform": {
+                  "0": "PLACEHOLDER"
+                }
+              },
+              "orb_quantity": 700,
+              "premium_orb_quantity": 840
+            }
+          ],
+          "rewards_expire_at": "2026-08-24T00:00:00+00:00",
+          "platforms": [
+            0
+          ]
+        },
+        "share_policy": "shareable_everywhere",
+        "cta_config": {
+          "link": "https://www.roblox.com/spotlight/sports?gsrbx=1",
+          "button_label": "Nhận Trò Chơi"
+        }
+      },
+      "hash": "eyJxdWVzdF9uYW1lIjoiVGVubmlzIFplcm8iLCJnYW1lX3RpdGxlIjoiVGVubmlzIFplcm8gb24gUm9ibG94IiwiZ2FtZV9wdWJsaXNoZXIiOiJST0JMT1giLCJhcHBsaWNhdGlvbl9pZCI6IjM2MzQ0NTU4OTI0NzEzMTY2OCIsImFwcGxpY2F0aW9uX25hbWUiOiJSb2Jsb3giLCJzdGFydHNfYXQiOiIyMDI2LTA3LTE1VDE3OjAwOjAwKzAwOjAwIiwiZXhwaXJlc19hdCI6IjIwMjYtMDctMjVUMDA6MDA6MDArMDA6MDAiLCJyZXdhcmRfZXhwaXJlc19hdCI6IjIwMjYtMDgtMjRUMDA6MDA6MDArMDA6MDAiLCJmZWF0dXJlcyI6WzE1XSwicGxhdGZvcm1zIjpbIlBDIl0sInRhc2tzIjpbeyJrZXkiOiJQTEFZX09OX0RFU0tUT1AiLCJ0eXBlIjoiUExBWV9PTl9ERVNLVE9QIiwidGFyZ2V0Ijo5MDB9XX0=",
+      "starts_at": "2026-07-15T17:00:00+00:00",
+      "expires_at": "2026-08-24T00:00:00+00:00",
+      "sent_at": "2026-07-15T19:12:41.826Z",
+      "type": "new"
     }
   },
-  "last_check": "2026-07-15T16:23:01.798Z"
+  "last_check": "2026-07-15T19:12:44.269Z"
 }
