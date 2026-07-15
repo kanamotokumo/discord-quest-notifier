@@ -24,9 +24,8 @@ export function saveState(state) {
 }
 
 /**
- * Discord Quest "features" bitfield — confirmed against a real quests.json
- * dump that `config.features` is a number[] (e.g. [3, 9, 13, 14, 15, 16, 18,
- * 19, 23]), not strings. This table decodes those IDs into readable names.
+ * Discord Quest "features" bitfield — decodes config.features (a number[])
+ * into readable names.
  */
 export const QUEST_FEATURES = {
     0: 'QUEST_BAR',
@@ -61,52 +60,52 @@ export function decodeFeatures(featureIds) {
     return featureIds.map(id => QUEST_FEATURES[id] || `UNKNOWN_${id}`);
 }
 
+// Same platform derivation as utils.js/embed.js — duplicated (not imported)
+// specifically to avoid a state.js <-> utils.js circular import, since
+// utils.js imports decodeFeatures from this file.
+const PLATFORM_TASK_LABELS = {
+    PLAY_ON_DESKTOP: 'PC',
+    PLAY_ON_XBOX: 'Xbox',
+    PLAY_ON_PLAYSTATION: 'PlayStation',
+};
+function derivePlatformsFromTasks(tasks) {
+    const matched = Object.values(tasks || {})
+        .map(t => PLATFORM_TASK_LABELS[t?.type])
+        .filter(Boolean);
+    return [...new Set(matched)].sort();
+}
+
 /**
- * Calculate a hash covering every quest field that can visibly change.
- * Field paths here are verified against a real quests.json dump rather than
- * guessed. Notable corrections vs the previous version:
- *   - `features` is a number[] (bitfield IDs) — hashed as sorted raw numbers
- *     (decoding is a display concern, handled by decodeFeatures() above).
- *   - Platform info does NOT live at a top-level `config.platforms` (that
- *     field doesn't exist in real data) — the only real platform signal is
- *     `rewards_config.platforms` (also number[]).
- *   - `colors.primary` / `colors.secondary` exist per-quest and are worth
- *     tracking since they affect embed branding.
- *   - individual rewards can carry `orb_quantity` (orb rewards) or their own
- *     `expires_at` (collectible rewards) — both now included per reward,
- *     not just sku/type/name.
+ * Calculate a hash covering exactly the fields that matter for "did this
+ * quest visibly change" — kept in one-for-one sync with the 7 categories
+ * (+ quest_name) that utils.js's detectQuestChanges/buildChangeDescription
+ * track and display: duration (starts/expires), reward_expires, features,
+ * game (title/publisher), tasks, platforms (derived from tasks），
+ * application. Deliberately narrower than an earlier version that also
+ * tracked colors/hero assets/cta_link/per-reward orb amounts — those aren't
+ * shown anywhere in the "updated quest" message, so including them in the
+ * hash risked triggering an "updated" notification with nothing to show.
  */
 export function hashQuestData(quest) {
     if (!quest) return null;
 
     const config = quest.config || {};
     const tasks = config.task_config_v2?.tasks || {};
-    const rewards = config.rewards_config?.rewards || [];
-    const rewardPlatforms = config.rewards_config?.platforms || [];
 
     const critical = {
-        // Naming / identity
         quest_name: config.messages?.quest_name,
         game_title: config.messages?.game_title,
         game_publisher: config.messages?.game_publisher,
         application_id: config.application?.id,
         application_name: config.application?.name,
 
-        // Timing
         starts_at: config.starts_at,
         expires_at: config.expires_at,
         reward_expires_at: config.rewards_config?.rewards_expire_at,
 
-        // Branding
-        color_primary: config.colors?.primary,
-        color_secondary: config.colors?.secondary,
-
-        // Feature flags & platforms — both number[] in the real API, sorted
-        // so re-ordering alone isn't reported as a "change"
         features: Array.isArray(config.features) ? [...config.features].sort((a, b) => a - b) : null,
-        reward_platforms: Array.isArray(rewardPlatforms) ? [...rewardPlatforms].sort((a, b) => a - b) : null,
+        platforms: derivePlatformsFromTasks(tasks),
 
-        // Every task's type + target, not just how many there are
         tasks: Object.keys(tasks)
             .sort()
             .map(key => ({
@@ -114,31 +113,7 @@ export function hashQuestData(quest) {
                 type: tasks[key]?.type,
                 target: tasks[key]?.target,
             })),
-
-        // Every reward's sku/type/name/orb-amount/own-expiry, not just the
-        // first reward's type + sku
-        rewards: rewards.map(r => ({
-            sku_id: r?.sku_id,
-            type: r?.type,
-            name: r?.messages?.name,
-            orb_quantity: r?.orb_quantity ?? null,
-            expires_at: r?.expires_at ?? null,
-        })),
-
-        // Every asset path — a swapped hero image/video/reward icon counts too
-        assets: {
-            hero: config.assets?.hero,
-            hero_video: config.assets?.hero_video,
-            quest_bar_hero: config.assets?.quest_bar_hero,
-            quest_bar_hero_video: config.assets?.quest_bar_hero_video,
-            game_tile: config.assets?.game_tile,
-            game_tile_light: config.assets?.game_tile_light,
-            game_tile_dark: config.assets?.game_tile_dark,
-            logotype: config.assets?.logotype,
-            logotype_light: config.assets?.logotype_light,
-            logotype_dark: config.assets?.logotype_dark,
-        },
     };
 
     return Buffer.from(JSON.stringify(critical)).toString('base64');
-}
+        }
