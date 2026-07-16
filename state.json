@@ -349,8 +349,8 @@
                 }
               ],
               "external_ids": [
-                "PPSA22751_00",
-                "PPSA18538_00"
+                "PPSA18538_00",
+                "PPSA22751_00"
               ]
             }
           },
@@ -386,10 +386,11 @@
       },
       "hash": "eyJxdWVzdF9uYW1lIjoiVmVyc2lvbiBVcGRhdGU6IEFyY2FuZSIsImdhbWVfdGl0bGUiOiJBcmtuaWdodHM6IEVuZGZpZWxkIiwiZ2FtZV9wdWJsaXNoZXIiOiJHUllQSExJTkUiLCJhcHBsaWNhdGlvbl9pZCI6IjE0NjExNTQzMDcxNzE4MTE0MDEiLCJhcHBsaWNhdGlvbl9uYW1lIjoiQXJrbmlnaHRzOiBFbmRmaWVsZCIsInN0YXJ0c19hdCI6IjIwMjYtMDctMTZUMDQ6MDA6MDArMDA6MDAiLCJleHBpcmVzX2F0IjoiMjAyNi0wNy0yOFQwNDowMDowMCswMDowMCIsInJld2FyZF9leHBpcmVzX2F0IjoiMjAyNi0wOC0yN1QwNDowMDowMCswMDowMCIsImZlYXR1cmVzIjpbMTVdLCJwbGF0Zm9ybXMiOlsiUEMiLCJQbGF5U3RhdGlvbiJdLCJ0YXNrcyI6W3sia2V5IjoiUExBWV9PTl9ERVNLVE9QIiwidHlwZSI6IlBMQVlfT05fREVTS1RPUCIsInRhcmdldCI6OTAwfSx7ImtleSI6IlBMQVlfT05fUExBWVNUQVRJT04iLCJ0eXBlIjoiUExBWV9PTl9QTEFZU1RBVElPTiIsInRhcmdldCI6OTAwfV19",
       "starts_at": "2026-07-16T04:00:00+00:00",
-      "expires_at": "2026-08-27T04:00:00+00:00",
+      "expires_at": "2026-07-28T04:00:00+00:00",
       "sent_at": "2026-07-16T05:42:42.561Z",
-      "type": "new"
+      "type": "updated",
+      "updated_at": "2026-07-16T08:15:15.720Z"
     }
   },
-  "last_check": "2026-07-16T05:42:43.664Z"
+  "last_check": "2026-07-16T08:15:16.822Z"
 }
