@@ -6,7 +6,7 @@
 
 Track new Discord Quests and changes in real-time. Get notified every 5 minutes when a new quest appears or when quest details are updated.
 
-![Status](https://img.shields.io/badge/Status-Fixing-yellow)
+![Status](https://img.shields.io/badge/Status-Working-brightgreen)
 ![Node](https://img.shields.io/badge/Node-20+-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
